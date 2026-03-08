@@ -1,0 +1,21 @@
+{
+  "name": "monkey-brain",
+  "version": "0.1.0",
+  "description": "Tailnet-first clipping intake service for your second brain (Supabase + Notion-ready)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "NODE_ENV=development node src/server.js",
+    "start": "NODE_ENV=production node src/server.js"
+  },
+  "dependencies": {
+    "@fastify/multipart": "^8.3.0",
+    "@supabase/supabase-js": "^2.49.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.27.2",
+    "nanoid": "^5.0.7",
+    "pino-pretty": "^10.3.0"
+  }
+}
