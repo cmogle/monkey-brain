@@ -3,8 +3,9 @@ import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import { createClient } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
+import OpenAI from 'openai';
 
-const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'CLIP_API_KEY'];
+const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'CLIP_API_KEY', 'OPENAI_API_KEY'];
 const missing = requiredEnv.filter((k) => !process.env[k]);
 if (missing.length) {
   console.error(`Missing env vars: ${missing.join(', ')}`);
@@ -15,6 +16,7 @@ const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'clips';
 const PORT = Number(process.env.PORT || 8787);
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const fastify = Fastify({
   logger: {
@@ -42,6 +44,10 @@ const parseTags = (value) => {
     .split(',')
     .map((t) => t.trim())
     .filter(Boolean);
+};
+
+const buildEmbeddingText = ({ title, content, note, url }) => {
+  return [title, content, note, url].filter(Boolean).join('\n').trim();
 };
 
 fastify.get('/health', async () => ({ ok: true, time: new Date().toISOString() }));
@@ -83,6 +89,7 @@ fastify.post('/clip', async (req, reply) => {
   const tags = parseTags(payload.tags);
 
   let fileMeta = null;
+  let embedding = null;
 
   if (filePart) {
     try {
@@ -111,6 +118,19 @@ fastify.post('/clip', async (req, reply) => {
     }
   }
 
+  const embeddingText = buildEmbeddingText({ title, content, note, url });
+  if (embeddingText) {
+    try {
+      const { data } = await openai.embeddings.create({
+        model: 'text-embedding-3-small',
+        input: embeddingText,
+      });
+      embedding = data?.[0]?.embedding || null;
+    } catch (err) {
+      req.log.warn({ err }, 'embedding failed; storing clip without embedding');
+    }
+  }
+
   const record = {
     id: clipId,
     title: title || null,
@@ -125,6 +145,7 @@ fastify.post('/clip', async (req, reply) => {
     file_meta: fileMeta,
     created_at: createdAt,
     client_ip: clientIp,
+    embedding,
   };
 
   const { error } = await supabase.from('clips').insert(record);
@@ -137,6 +158,7 @@ fastify.post('/clip', async (req, reply) => {
     id: clipId,
     stored: true,
     has_file: Boolean(fileMeta),
+    embedded: Boolean(embedding),
     bucket: SUPABASE_BUCKET,
     created_at: createdAt,
   };

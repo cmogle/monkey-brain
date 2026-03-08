@@ -7,6 +7,7 @@ Tailnet-only clipping intake for your second brain. Accepts Share-sheet posts fr
 - Works offline on device; posts once network returns.
 - Text, URLs, and optional files (screenshots, PDFs); client-side OCR encouraged.
 - Private by default: tailnet HTTP + API key; no public exposure unless you choose Tailscale Funnel.
+- Semantic search ready: embeddings stored in Supabase (OpenAI `text-embedding-3-small`) with `match_clips()` RPC for pgvector search.
 - Ready for Phase 2 (summaries, purpose validation, Notion export) but keeps Phase 1 minimal.
 
 ## Components
@@ -21,7 +22,7 @@ Tailnet-only clipping intake for your second brain. Accepts Share-sheet posts fr
 
 ## Setup
 1. Apply schema in Supabase. Open the SQL editor, paste `db/schema.sql`, run it to create `public.clips`, indexes, and the private `clips` bucket.
-2. Configure env. Copy `.env.example` to `.env`; set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and a strong `CLIP_API_KEY`; optionally change `PORT` and `SUPABASE_BUCKET`.
+2. Configure env. Copy `.env.example` to `.env`; set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, a strong `CLIP_API_KEY`, and `OPENAI_API_KEY`; optionally change `PORT` and `SUPABASE_BUCKET`.
 3. Install deps. `cd /Users/monkeyclaw/monkey-brain` then `npm install`.
 4. Run the service. `npm run dev` for pretty logs or `npm start` for production; listens on `0.0.0.0:${PORT}`.
 
@@ -32,6 +33,7 @@ Tailnet-only clipping intake for your second brain. Accepts Share-sheet posts fr
 - Multipart fields: same as above plus one file part. Server stores file to Supabase Storage bucket `clips` at path `<id>/<filename>`.
 - Response: `{ id, stored: true, has_file, bucket, created_at }`.
 - Health: `GET /health` returns `{ ok: true }`.
+- Semantic search: use `select * from match_clips(<embedding>, match_threshold, match_count);` after generating a query embedding with `text-embedding-3-small`.
 
 ## Suggested iOS Shortcut (Share Sheet: Text/Links)
 - Action 1: Get Details of Shortcut Input → choose URL and Text.
