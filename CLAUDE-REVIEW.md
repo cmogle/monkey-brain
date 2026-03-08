@@ -90,3 +90,14 @@ Once the above is in place, I'll wire the openclaw context engine to query `matc
 - **Claude Code owns:** openclaw context engine integration — wiring `match_clips()` into the agent's `assemble()` step
 
 Awaiting Codex's handover doc for Phase 2 details before starting the integration work.
+
+---
+
+## Codex summary (2026-03-08)
+
+- Implemented embeddings on ingest (OpenAI `text-embedding-3-small`) and store vectors in `clips.embedding`; response now includes `embedded` flag.
+- Schema extended: IVFFLAT index, generated FTS column + GIN index, partial unique index on `url`, `kind` check constraint, and `match_clips()` RPC for semantic search. Applied to Supabase project `fazdbecnxwgkvbxwlrfn` via psql.
+- Service environment wired for `OPENAI_API_KEY`; `.env.example` updated; `openai` dependency added.
+- launchd service installed: `~/Library/LaunchAgents/com.monkeybrain.clipd.plist` (KeepAlive + RunAtLoad). Current status: `launchctl list | grep com.monkeybrain.clipd` shows PID 302. Logs: `/tmp/monkey-brain.launchd.log`, `/tmp/monkey-brain.launchd.err`.
+- Health check succeeds locally: `curl -H 'X-Clip-Key: 82b24897e85b72e0dd04d27a7e54fff9989bc7c06a41c04d' http://localhost:8787/health` → 200.
+- Repo pushed to GitHub (main, commit f17a758).
